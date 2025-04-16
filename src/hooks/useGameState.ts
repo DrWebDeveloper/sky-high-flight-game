@@ -2,7 +2,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/ui/sonner';
 
-interface GameState {
+export interface GameState {
   isGameActive: boolean;
   multiplier: number;
   crashPoint: number;

@@ -1,5 +1,4 @@
-
-import React, { useEffect, useCallback } from 'react';
+import React, { useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import GameCanvas from '@/components/game/GameCanvas';
 import BettingPanel from '@/components/BettingPanel';
@@ -7,6 +6,8 @@ import GameControls from '@/components/GameControls';
 import GameStats from '@/components/GameStats';
 import { useGameState } from '@/hooks/useGameState';
 import { useGameHistory } from '@/hooks/useGameHistory';
+import { MULTIPLIER_BASE, MULTIPLIER_UPDATE_INTERVAL } from '@/constants/gameConstants';
+import { checkForAutoCashouts } from '@/utils/gameUtils';
 
 const Game = () => {
   const {
@@ -31,8 +32,62 @@ const Game = () => {
     setHighestMultiplier
   } = useGameHistory();
 
+  const multiplierIntervalRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Effect to handle multiplier updates when game is active
+  useEffect(() => {
+    if (gameState.isGameActive) {
+      // Clear any existing interval
+      if (multiplierIntervalRef.current) {
+        clearInterval(multiplierIntervalRef.current);
+      }
+
+      const startTime = Date.now();
+      
+      // Set up interval to update multiplier
+      multiplierIntervalRef.current = setInterval(() => {
+        const elapsedSeconds = (Date.now() - startTime) / 1000;
+        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * 100)).toFixed(2));
+        
+        setGameState(prev => {
+          // Check if we've reached or exceeded the crash point
+          if (newMultiplier >= prev.crashPoint) {
+            // Clear the interval and end the game
+            if (multiplierIntervalRef.current) {
+              clearInterval(multiplierIntervalRef.current);
+              multiplierIntervalRef.current = null;
+            }
+            
+            // Schedule ending the game in the next tick to avoid state update conflicts
+            setTimeout(() => endGame(prev.crashPoint), 0);
+            return prev;
+          }
+          
+          // Otherwise update the multiplier
+          return {
+            ...prev,
+            multiplier: newMultiplier
+          };
+        });
+        
+        // Check for auto-cashouts with the updated multiplier
+        checkForAutoCashouts(newMultiplier, gameState, handleCashout);
+        
+      }, MULTIPLIER_UPDATE_INTERVAL);
+      
+      return () => {
+        if (multiplierIntervalRef.current) {
+          clearInterval(multiplierIntervalRef.current);
+          multiplierIntervalRef.current = null;
+        }
+      };
+    }
+  }, [gameState.isGameActive, gameState.crashPoint, handleCashout]);
+
   const startNewGame = useCallback(() => {
     const newCrashPoint = generateCrashPoint();
+    console.log("Starting new game with crash point:", newCrashPoint);
+    
     setGameState(prev => ({
       ...prev,
       crashPoint: newCrashPoint,
@@ -53,6 +108,8 @@ const Game = () => {
   }, [gameState.activeBet, generateCrashPoint, highestMultiplier, setGameState, setHighestMultiplier, setTotalBets, setTotalPlayers]);
 
   const endGame = useCallback((finalMultiplier: number) => {
+    console.log("Game ended at multiplier:", finalMultiplier);
+    
     setGameState(prev => ({
       ...prev,
       isGameActive: false,
