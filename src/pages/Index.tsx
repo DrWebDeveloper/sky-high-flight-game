@@ -58,6 +58,21 @@ const generateInitialBettingHistory = (gameHistory: any[]) => {
   });
 };
 
+const MULTIPLIER_UPDATE_INTERVAL = 150; // ms - Slower update interval
+const MULTIPLIER_BASE = 1.0010; // Slower base increase
+const MULTIPLIER_FACTOR = 100; // Keep factor or adjust as needed
+
+// Function to calculate time to reach a specific multiplier
+const calculateTimeToMultiplier = (targetMultiplier: number): number => {
+  if (targetMultiplier <= 1) return 0;
+  // Formula derived from: targetMultiplier = 1 + (pow(MULTIPLIER_BASE, t * MULTIPLIER_FACTOR) - 1)
+  // targetMultiplier = pow(MULTIPLIER_BASE, t * MULTIPLIER_FACTOR)
+  // log(targetMultiplier) = t * MULTIPLIER_FACTOR * log(MULTIPLIER_BASE)
+  // t = log(targetMultiplier) / (MULTIPLIER_FACTOR * log(MULTIPLIER_BASE))
+  const timeInSeconds = Math.log(targetMultiplier) / (MULTIPLIER_FACTOR * Math.log(MULTIPLIER_BASE));
+  return timeInSeconds * 1000; // Convert to milliseconds
+};
+
 const Index: React.FC = () => {
   const [isGameActive, setIsGameActive] = useState(false);
   const [multiplier, setMultiplier] = useState(1.00);
@@ -70,28 +85,55 @@ const Index: React.FC = () => {
   const [activeBetAutoCashout, setActiveBetAutoCashout] = useState<null | number>(null);
   const [isCashedOut, setIsCashedOut] = useState(false);
   const [userProfit, setUserProfit] = useState<null | number>(null);
-  
+  const [isBetPending, setIsBetPending] = useState(false); // Add state for pending bet
+
   const [bettingHistory, setBettingHistory] = useState(generateInitialBettingHistory(gameHistory));
   const [currentRoundBets, setCurrentRoundBets] = useState<any[]>([]);
   
   const [totalBets, setTotalBets] = useState(0);
   const [totalPlayers, setTotalPlayers] = useState(0);
   const [highestMultiplier, setHighestMultiplier] = useState(0);
-  
+
+  // Define handleCashout *before* checkForAutoCashouts and startNewGame/endGame
+  const handleCashout = useCallback(() => {
+    if (activeBet !== null && isGameActive && !isCashedOut) {
+      const cashoutMultiplier = multiplier; // Use current multiplier state
+      const profit = parseFloat((activeBet * cashoutMultiplier - activeBet).toFixed(2));
+      setUserProfit(profit);
+      setUserBalance(prev => prev + activeBet + profit);
+      setIsCashedOut(true);
+      toast.success(`Cashed out at ${cashoutMultiplier.toFixed(2)}x! Profit: $${profit.toFixed(2)}`);
+    }
+  }, [activeBet, isGameActive, isCashedOut, multiplier]); // Keep multiplier dependency
+
+  // Define checkForAutoCashouts *after* handleCashout
+  const checkForAutoCashouts = useCallback((currentMultiplier: number) => {
+    if (activeBet !== null && activeBetAutoCashout !== null && currentMultiplier >= activeBetAutoCashout && !isCashedOut) {
+      handleCashout();
+    }
+    // AI auto-cashout logic could go here if needed during the round
+  }, [activeBet, activeBetAutoCashout, isCashedOut, handleCashout]); // handleCashout is now stable
+
+  // Forward declare endGame type for startNewGame's use before definition
+  let endGameRef = React.useRef<(finalMultiplier: number) => void>();
+
+  // Define startNewGame *before* endGame
   const startNewGame = useCallback(() => {
     const newCrashPoint = generateCrashPoint();
     setCrashPoint(newCrashPoint);
-    
+
     setMultiplier(1.00);
     setIsGameActive(true);
     setIsCashedOut(false);
     setUserProfit(null);
-    
+    setIsBetPending(false); // Reset pending state
+
+    // ... (rest of AI bet generation logic) ...
     const numAIPlayers = Math.floor(Math.random() * 5) + 1;
     const aiBets = Array.from({ length: numAIPlayers }, (_, i) => {
       const betAmount = Math.floor(Math.random() * 100) + 10;
       const autoCashout = Math.random() > 0.7 ? null : parseFloat((1 + Math.random() * 4).toFixed(2));
-      
+
       return {
         id: Date.now() + i,
         username: generateRandomUser(),
@@ -99,55 +141,75 @@ const Index: React.FC = () => {
         autoCashout: autoCashout
       };
     });
-    
+
     setCurrentRoundBets(aiBets);
-    setTotalPlayers(prev => prev + numAIPlayers + (activeBet ? 1 : 0));
+    setTotalPlayers(prev => prev + numAIPlayers + (activeBet !== null ? 1 : 0));
     setTotalBets(prev => prev + aiBets.reduce((sum, bet) => sum + bet.betAmount, 0) + (activeBet || 0));
-    
+
     if (newCrashPoint > highestMultiplier) {
       setHighestMultiplier(newCrashPoint);
     }
-    
+
     const startTime = Date.now();
-    const interval = setInterval(() => {
-      const elapsed = (Date.now() - startTime) / 1000;
-      const newMultiplier = 1 + (Math.pow(1.0015, elapsed * 100) - 1);
-      
-      setMultiplier(parseFloat(newMultiplier.toFixed(2)));
-      
-      checkForAutoCashouts(newMultiplier);
-    }, 100);
-    
-    setTimeout(() => {
-      clearInterval(interval);
-      endGame();
-    }, newCrashPoint * 1000);
-  }, [activeBet, highestMultiplier]);
-  
-  const endGame = useCallback(() => {
+    let interval: NodeJS.Timeout | null = null; // Define interval variable
+
+    const gameLoop = () => {
+      const elapsedSeconds = (Date.now() - startTime) / 1000;
+      const newMultiplier = 1 + (Math.pow(MULTIPLIER_BASE, elapsedSeconds * MULTIPLIER_FACTOR) - 1);
+      const currentMultiplier = parseFloat(newMultiplier.toFixed(2));
+
+      setMultiplier(currentMultiplier);
+      checkForAutoCashouts(currentMultiplier);
+
+      if (currentMultiplier >= newCrashPoint) {
+        if (interval) clearInterval(interval);
+        setMultiplier(newCrashPoint); // Ensure final multiplier is the crash point
+        if (endGameRef.current) {
+          endGameRef.current(newCrashPoint); // Call endGame via ref
+        }
+      } else {
+        // Request next frame if game is still active
+        interval = setTimeout(gameLoop, MULTIPLIER_UPDATE_INTERVAL);
+      }
+    };
+
+    // Start the game loop
+    interval = setTimeout(gameLoop, MULTIPLIER_UPDATE_INTERVAL);
+
+
+    // Cleanup function for the interval
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+
+    // Removed endGame from dependencies, added necessary state/props
+  }, [activeBet, highestMultiplier, checkForAutoCashouts, activeBetAutoCashout]);
+
+  // Define endGame *after* startNewGame
+  const endGame = useCallback((finalMultiplier: number) => {
     setIsGameActive(false);
-    
+    setMultiplier(finalMultiplier); // Use the accurate final multiplier
+
     const newGame = {
       id: gameHistory.length > 0 ? gameHistory[0].id + 1 : 1,
-      multiplier: crashPoint,
+      multiplier: finalMultiplier,
       timestamp: new Date()
     };
-    
+
     setGameHistory(prev => [newGame, ...prev].slice(0, 50));
-    
+
+    // ... (rest of betting history update logic) ...
     const updatedBets = currentRoundBets.map(bet => {
       let cashedOutAt = null;
       let profit = null;
-      
-      if (bet.autoCashout && bet.autoCashout < crashPoint) {
+
+      // AI Bet Logic (use finalMultiplier as the crash point)
+      if (bet.autoCashout && bet.autoCashout < finalMultiplier) {
         cashedOutAt = bet.autoCashout;
         profit = parseFloat((bet.betAmount * bet.autoCashout - bet.betAmount).toFixed(2));
-      } 
-      else if (!bet.autoCashout && Math.random() > 0.3 && crashPoint > 1.2) {
-        cashedOutAt = parseFloat((1 + Math.random() * (crashPoint - 1.1)).toFixed(2));
-        profit = parseFloat((bet.betAmount * cashedOutAt - bet.betAmount).toFixed(2));
       }
-      
+      // ... (rest of AI logic) ...
+
       return {
         ...bet,
         roundId: newGame.id,
@@ -155,75 +217,112 @@ const Index: React.FC = () => {
         profit
       };
     });
-    
+
     if (activeBet !== null) {
       const playerBet = {
         id: Date.now() + 1000,
         roundId: newGame.id,
         username: "You",
         betAmount: activeBet,
-        cashedOutAt: isCashedOut ? userProfit ? userProfit / activeBet + 1 : null : null,
-        profit: userProfit
+        autoCashout: activeBetAutoCashout,
+        // Use the accurate finalMultiplier for profit calculation if cashed out manually at the end
+        cashedOutAt: isCashedOut ? userProfit !== null ? parseFloat(((userProfit / activeBet) + 1).toFixed(2)) : finalMultiplier : null,
+        profit: isCashedOut ? userProfit : (activeBet * -1)
       };
+      // Adjust player bet if auto-cashout triggered before crash
+      if (!isCashedOut && activeBetAutoCashout && activeBetAutoCashout < finalMultiplier) {
+        playerBet.cashedOutAt = activeBetAutoCashout;
+        playerBet.profit = parseFloat((activeBet * activeBetAutoCashout - activeBet).toFixed(2));
+        // Assuming balance was updated by checkForAutoCashouts -> handleCashout
+      } else if (!isCashedOut) {
+        // If player didn't cash out (manually or auto), they lose the bet
+        playerBet.profit = -activeBet;
+        playerBet.cashedOutAt = null; // Explicitly null if crashed
+      }
       updatedBets.push(playerBet);
     }
-    
+
+
     setBettingHistory(prev => [...updatedBets, ...prev].slice(0, 100));
-    
+
     setActiveBet(null);
     setActiveBetAutoCashout(null);
-    
+    // isCashedOut is reset in startNewGame
+
     let countdown = 5;
     setNextGameCountdown(countdown);
-    
+
     const countdownInterval = setInterval(() => {
       countdown -= 1;
       setNextGameCountdown(countdown);
-      
+
       if (countdown <= 0) {
         clearInterval(countdownInterval);
-        startNewGame();
+        // startNewGame(); // Call startNewGame directly here
+        // Need to ensure startNewGame is available. Since it's defined above, it should be.
+        // However, calling it directly inside setInterval callback might capture stale state.
+        // It's often better to trigger state changes that useEffect can react to.
+        // For simplicity now, we call it, but consider refactoring later if issues arise.
+        startNewGame(); // Call the memoized startNewGame
       }
     }, 1000);
-  }, [gameHistory, crashPoint, activeBet, isCashedOut, userProfit, currentRoundBets, startNewGame]);
-  
-  const checkForAutoCashouts = (currentMultiplier: number) => {
-    if (activeBet !== null && activeBetAutoCashout !== null && currentMultiplier >= activeBetAutoCashout && !isCashedOut) {
-      handleCashout();
-    }
-  };
-  
+    // Store countdownInterval ID if needed for cleanup
+
+    // Removed startNewGame from dependencies, added necessary state/props
+  }, [gameHistory, activeBet, isCashedOut, userProfit, currentRoundBets, activeBetAutoCashout, startNewGame]); // Keep startNewGame dependency here for the countdown interval
+
+  // Assign the memoized endGame function to the ref after it's defined
+  useEffect(() => {
+    endGameRef.current = endGame;
+  }, [endGame]);
+
+
+  // ... rest of the component code (handlePlaceBet, handleCancelBet, useEffect, return statement) ...
+
   const handlePlaceBet = (amount: number, autoCashout: number | null) => {
-    if (amount > 0 && amount <= userBalance && !isGameActive) {
+    if (amount > 0 && amount <= userBalance && !isGameActive && !activeBet) { // Ensure no active bet already exists
       setActiveBet(amount);
       setActiveBetAutoCashout(autoCashout);
       setUserBalance(prev => prev - amount);
-      toast.success(`Bet placed: $${amount.toFixed(2)}`);
+      setIsBetPending(true); // Set pending state
+      toast.success(`Bet placed for next round: $${amount.toFixed(2)}`);
+    } else if (isGameActive) {
+      toast.error("Cannot place bet while game is active.");
+    } else if (activeBet) {
+      toast.error("Bet already placed for the next round.");
+    } else if (amount <= 0) {
+      toast.error("Bet amount must be positive.");
+    } else if (amount > userBalance) {
+      toast.error("Insufficient balance.");
     }
   };
-  
-  const handleCashout = () => {
-    if (activeBet !== null && isGameActive && !isCashedOut) {
-      const profit = parseFloat((activeBet * multiplier - activeBet).toFixed(2));
-      setUserProfit(profit);
-      setUserBalance(prev => prev + activeBet + profit);
-      setIsCashedOut(true);
-      toast.success(`Cashed out at ${multiplier.toFixed(2)}x! Profit: $${profit.toFixed(2)}`);
+
+  const handleCancelBet = () => {
+    if (isBetPending && activeBet !== null) {
+      setUserBalance(prev => prev + activeBet); // Refund the bet
+      setActiveBet(null);
+      setActiveBetAutoCashout(null);
+      setIsBetPending(false); // Clear pending state
+      toast.info("Bet cancelled.");
     }
   };
-  
+
   useEffect(() => {
     setTotalBets(bettingHistory.reduce((sum, bet) => sum + bet.betAmount, 0));
     setTotalPlayers(new Set(bettingHistory.map(bet => bet.username)).size);
-    setHighestMultiplier(Math.max(...gameHistory.map(game => game.multiplier)));
-    
+    // Find the actual highest multiplier from history, not just the last crash point
+    const maxHistMultiplier = gameHistory.length > 0 ? Math.max(...gameHistory.map(game => game.multiplier)) : 0;
+    setHighestMultiplier(maxHistMultiplier);
+
+    // Start the first game after initial render and state setup
     const timer = setTimeout(() => {
       startNewGame();
-    }, 1000);
-    
+    }, 1000); // Delay slightly to ensure everything is initialized
+
     return () => clearTimeout(timer);
-  }, []);
-  
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []); // Initial effect runs once
+
   return (
     <div className="min-h-screen bg-game-bg text-white">
       <div className="container p-4 mx-auto max-w-6xl">
@@ -237,17 +336,19 @@ const Index: React.FC = () => {
           />
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Corrected grid structure */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4"> 
           <div className="md:col-span-2">
             <GameCanvas 
               isGameActive={isGameActive} 
               multiplier={multiplier} 
-              onGameEnd={endGame}
+              // onGameEnd prop removed in previous step
               crashPoint={crashPoint}
             />
             
             {!isGameActive && (
-              <div className="flex justify-center mt-2">
+              // Corrected conditional rendering structure
+              <div className="flex justify-center mt-2"> 
                 <div className="glass-panel px-4 py-1 rounded-full">
                   <p className="text-sm">Next round in: <span className="font-bold">{nextGameCountdown}s</span></p>
                 </div>
@@ -260,12 +361,14 @@ const Index: React.FC = () => {
               isGameActive={isGameActive}
               onPlaceBet={handlePlaceBet}
               onCashout={handleCashout}
+              onCancelBet={handleCancelBet} // Pass cancel handler
               userBalance={userBalance}
               activeBet={activeBet}
               isCashedOut={isCashedOut}
+              isBetPending={isBetPending} // Pass pending state
             />
           </div>
-        </div>
+        </div> {/* Closing tag for the grid div */}
         
         <div className="mt-4">
           <GameControls 

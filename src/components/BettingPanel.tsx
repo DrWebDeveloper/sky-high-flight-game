@@ -1,25 +1,28 @@
-
 import React, { useState, useEffect } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { DollarSign, Plus, Minus, Undo } from 'lucide-react';
+import { DollarSign, Plus, Minus, Undo, X } from 'lucide-react'; // Import X icon for Cancel
 
 interface BettingPanelProps {
   isGameActive: boolean;
   onPlaceBet: (amount: number, autoCashout: number | null) => void;
   onCashout: () => void;
+  onCancelBet: () => void; // Add cancel bet handler prop
   userBalance: number;
   activeBet: number | null;
   isCashedOut: boolean;
+  isBetPending: boolean; // Add pending state prop
 }
 
 const BettingPanel: React.FC<BettingPanelProps> = ({
   isGameActive,
   onPlaceBet,
   onCashout,
+  onCancelBet, // Destructure new prop
   userBalance,
   activeBet,
-  isCashedOut
+  isCashedOut,
+  isBetPending // Destructure new prop
 }) => {
   const [betAmount, setBetAmount] = useState<number>(10);
   const [autoCashout, setAutoCashout] = useState<number | null>(null);
@@ -51,6 +54,8 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
     setBetAmount(10);
   };
 
+  const isInputDisabled = isGameActive || isBetPending; // Disable inputs when bet is pending
+
   return (
     <div className="glass-panel p-4 md:p-6 space-y-4">
       <h2 className="text-lg font-semibold">Place Your Bet</h2>
@@ -63,7 +68,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
               variant="outline" 
               size="icon" 
               onClick={decrementBet}
-              disabled={isGameActive || betAmount <= 0}
+              disabled={isInputDisabled || betAmount <= 0} // Use isInputDisabled
               className="h-8 w-8"
             >
               <Minus size={16} />
@@ -75,7 +80,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
                 type="number"
                 value={betAmount}
                 onChange={(e) => setBetAmount(Math.min(parseFloat(e.target.value) || 0, userBalance))}
-                disabled={isGameActive}
+                disabled={isInputDisabled} // Use isInputDisabled
                 className="pl-8"
               />
             </div>
@@ -84,7 +89,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
               variant="outline" 
               size="icon" 
               onClick={incrementBet}
-              disabled={isGameActive || betAmount >= userBalance}
+              disabled={isInputDisabled || betAmount >= userBalance} // Use isInputDisabled
               className="h-8 w-8"
             >
               <Plus size={16} />
@@ -94,7 +99,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
               variant="outline" 
               size="icon" 
               onClick={resetBet}
-              disabled={isGameActive}
+              disabled={isInputDisabled} // Use isInputDisabled
               className="h-8 w-8"
             >
               <Undo size={16} />
@@ -108,7 +113,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
               type="checkbox"
               checked={autoCashoutEnabled}
               onChange={() => setAutoCashoutEnabled(!autoCashoutEnabled)}
-              disabled={isGameActive}
+              disabled={isInputDisabled} // Use isInputDisabled
               className="h-4 w-4 rounded border-gray-300 text-game-primary focus:ring-game-primary"
             />
             <span className="text-sm">Auto Cashout</span>
@@ -119,7 +124,7 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
               type="text"
               value={autoCashoutValue}
               onChange={handleAutoCashoutChange}
-              disabled={isGameActive || !autoCashoutEnabled}
+              disabled={isInputDisabled || !autoCashoutEnabled} // Use isInputDisabled
               className="text-right"
               placeholder="2.00"
             />
@@ -136,7 +141,15 @@ const BettingPanel: React.FC<BettingPanelProps> = ({
           >
             {isCashedOut ? 'CASHED OUT' : 'CASH OUT NOW'}
           </Button>
-        ) : (
+        ) : isBetPending ? ( // Condition for Cancel button
+          <Button
+            onClick={onCancelBet}
+            variant="destructive" // Use destructive variant for cancel
+            className="w-full h-12 text-lg font-bold"
+          >
+            <X className="mr-2 h-5 w-5" /> Cancel Bet
+          </Button>
+        ) : ( // Condition for Place Bet button
           <Button
             onClick={handlePlaceBet}
             disabled={isGameActive || betAmount <= 0 || betAmount > userBalance}
