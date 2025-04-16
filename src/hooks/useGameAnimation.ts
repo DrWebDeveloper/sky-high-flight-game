@@ -1,9 +1,11 @@
+
 import { useRef, useCallback, useState } from 'react';
 import { usePlanePosition } from './animation/usePlanePosition';
 import { useAnimationTiming } from './animation/useAnimationTiming';
 import { useBackgroundPlanes } from './animation/useBackgroundPlanes';
 import { useTrajectory } from './animation/useTrajectory';
 import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes, drawTrajectory } from '@/utils/canvas';
+import { GAME_CANVAS } from '@/constants/gameConstants';
 
 interface GameAnimationProps {
   isGameActive: boolean;
