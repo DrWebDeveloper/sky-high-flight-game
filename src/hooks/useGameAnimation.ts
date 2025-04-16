@@ -1,5 +1,6 @@
 import { useRef, useCallback, useState } from 'react';
 import { GAME_CANVAS } from '@/constants/gameConstants';
+import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes, drawTrajectory } from '@/utils/canvas';
 
 interface GameAnimationProps {
   isGameActive: boolean;
@@ -25,14 +26,11 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
   const flyAwayStartTime = useRef<number | null>(null);
   const startAnimationTime = useRef<number | null>(null);
   
-  // Add references for background planes
   const backgroundPlanesRef = useRef<PlanePosition[]>([]);
   
-  // Initialize background planes
   const initBackgroundPlanes = useCallback(() => {
     const { DEFAULT_WIDTH, DEFAULT_HEIGHT } = GAME_CANVAS;
     
-    // Create random background planes
     backgroundPlanesRef.current = Array.from({ length: 5 }, () => ({
       x: Math.random() * DEFAULT_WIDTH,
       y: Math.random() * DEFAULT_HEIGHT,
@@ -40,7 +38,6 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     }));
   }, []);
 
-  // Add new method to calculate predicted trajectory points
   const calculateTrajectoryPoints = useCallback((currentMultiplier: number) => {
     if (!isGameActive || currentMultiplier < 1) return [];
     
@@ -56,10 +53,9 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     const currentProgress = (currentMultiplier - 1) / Math.max(0.1, crashPoint - 1);
     const points = [];
     
-    // Calculate points along the future trajectory
     for (let i = 0; i < 10; i++) {
       const futureProgress = currentProgress + (i / 20) * (1 - currentProgress);
-      if (futureProgress >= 1) break; // Don't predict beyond crash point
+      if (futureProgress >= 1) break;
       
       const normalizedProgress = Math.min(1, Math.max(0, futureProgress));
       const curveSteepness = 0.5;
@@ -105,10 +101,8 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     const graphHeight = height - bottomMargin - topMargin;
     const graphWidth = width - leftMargin - rightMargin;
 
-    // Clear and draw background with gradient
     ctx.clearRect(0, 0, width, height);
     
-    // Add a subtle background gradient
     const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
     bgGradient.addColorStop(0, 'rgba(20, 20, 40, 0.3)');
     bgGradient.addColorStop(1, 'rgba(10, 10, 20, 0.3)');
@@ -117,14 +111,12 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     
     drawGrid({ ctx, width, height, bottomMargin, topMargin, leftMargin, rightMargin });
     
-    // Draw background planes for ambience
     if (backgroundPlanesRef.current.length > 0) {
       drawBackgroundPlanes(ctx, planeImage, backgroundPlanesRef.current, timestamp, width, height);
     }
 
     let { x: nextX, y: nextY, angle } = currentPlanePos.current;
 
-    // Update position based on game state
     if (isFlyingAway && flyAwayStartTime.current) {
       const flyAwayDuration = timestamp - flyAwayStartTime.current;
       const flyAwaySpeed = 100 + flyAwayDuration / 20;
@@ -197,10 +189,8 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
       }
     }
 
-    // Draw game elements in correct order
     drawPath(ctx, pathPointsRef.current, height, bottomMargin);
     
-    // Draw trajectory prediction if game is active
     if (isGameActive && startAnimationTime.current === null) {
       drawTrajectory(
         ctx, 
@@ -223,7 +213,6 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     
     drawMultiplier(ctx, multiplier, crashPoint, isGameActive, startAnimationTime.current, timestamp, width, height);
 
-    // Request next frame
     if (animationFrameId.current !== null) {
       animationFrameId.current = requestAnimationFrame(draw);
     }
