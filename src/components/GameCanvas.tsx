@@ -38,12 +38,17 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
 
   // Load plane image
   useEffect(() => {
+    console.log("Loading plane image");
     const img = new Image();
     img.src = aviatorSvg;
     img.onload = () => {
+      console.log("Plane image loaded successfully");
       planeImageRef.current = img;
       // Initialize background planes once the image is loaded
       initBackgroundPlanes();
+    };
+    img.onerror = (e) => {
+      console.error("Error loading plane image:", e);
     };
   }, [initBackgroundPlanes]);
 
@@ -68,13 +73,24 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
     const planeImage = planeImageRef.current;
-    if (!canvas || !planeImage) {
+    
+    if (!canvas) {
+      console.log("Canvas not found");
+      animationFrameId.current = requestAnimationFrame(draw);
+      return;
+    }
+    
+    if (!planeImage) {
+      console.log("Plane image not loaded yet");
       animationFrameId.current = requestAnimationFrame(draw);
       return;
     }
 
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (!ctx) {
+      console.error("Could not get 2D context");
+      return;
+    }
 
     const rawDeltaTime = (timestamp - lastTimestamp.current) / 1000;
     lastTimestamp.current = timestamp;
@@ -177,7 +193,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
       }
     }
 
-    // Draw game elements
+    // Draw game elements in correct order
     drawPath(ctx, pathPointsRef.current, height, bottomMargin);
     
     // Draw trajectory prediction if game is active

@@ -1,4 +1,3 @@
-
 interface DrawConfig {
   ctx: CanvasRenderingContext2D;
   width: number;
@@ -115,7 +114,7 @@ export const drawTrajectory = (
   ctx.globalAlpha = PREDICTION_OPACITY;
   ctx.fillStyle = TRAJECTORY_LINE;
   
-  const currentProgress = (multiplier - 1) / (crashPoint - 1);
+  const currentProgress = (multiplier - 1) / Math.max(0.1, (crashPoint - 1));
   let predictivePoints = [];
   
   // Calculate future trajectory points
@@ -171,7 +170,7 @@ export const drawPlane = (
   multiplier: number
 ) => {
   const planeWidth = 60; // Slightly larger plane
-  const planeHeight = 60 * (planeImage.height / planeImage.width);
+  const planeHeight = 40; // Fixed aspect ratio for better visibility
   
   // Add a glow effect when the game is active
   if (isGameActive && startAnimationTime === null) {
@@ -190,7 +189,10 @@ export const drawPlane = (
   ctx.translate(x, y);
   ctx.rotate(angle);
   
-  // Draw plane with proper colors
+  // Make sure we draw the plane with proper colors
+  ctx.fillStyle = '#E50539'; // Red color for the plane
+  
+  // Draw plane with proper dimensions
   ctx.drawImage(planeImage, -planeWidth / 2, -planeHeight / 2, planeWidth, planeHeight);
   
   // Draw a small trail behind the plane
@@ -211,7 +213,7 @@ export const drawPlane = (
   ctx.restore();
   
   if (isGameActive && startAnimationTime === null) {
-    ctx.restore();
+    ctx.restore(); // Restore from glow effect save
   }
 };
 

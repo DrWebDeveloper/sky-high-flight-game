@@ -29,11 +29,11 @@ export const GAME_COLORS = {
   TRAJECTORY_LINE: '#FF9800' // Added for trajectory visualization
 };
 
-// Added trajectory visualization settings
+// Enhanced trajectory visualization settings
 export const TRAJECTORY = {
   SHOW_PREDICTION: true,
-  PREDICTION_POINTS: 50,
-  PREDICTION_OPACITY: 0.3,
-  DOT_SIZE: 3,
-  DOT_SPACING: 15
+  PREDICTION_POINTS: 50, // More points for smoother trajectory
+  PREDICTION_OPACITY: 0.6, // Higher opacity for better visibility
+  DOT_SIZE: 4, // Larger dots
+  DOT_SPACING: 10 // Closer spacing for more continuous line
 };
