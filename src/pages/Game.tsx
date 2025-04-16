@@ -1,3 +1,4 @@
+
 import React, { useEffect, useCallback, useRef } from 'react';
 import Header from '@/components/Header';
 import GameCanvas from '@/components/game/GameCanvas';
@@ -44,8 +45,11 @@ const Game = () => {
       
       multiplierIntervalRef.current = setInterval(() => {
         const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const growthFactor = 1.5;
-        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * growthFactor * 100)).toFixed(2));
+        
+        // Enhanced multiplier calculation for more dramatic growth
+        // We're using a more aggressive growth formula with higher exponent
+        const growthFactor = 3.0; // Increased from 1.5 for faster growth
+        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * growthFactor * 100) + elapsedSeconds * 0.1).toFixed(2));
         
         setGameState(prev => {
           if (newMultiplier >= prev.crashPoint) {

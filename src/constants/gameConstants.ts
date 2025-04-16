@@ -10,9 +10,9 @@ export const GAME_CANVAS = {
   }
 };
 
-// Adjusted for smoother animation
+// Adjusted for more dramatic growth
 export const MULTIPLIER_UPDATE_INTERVAL = 100; // ms - Faster update for smoother animation
-export const MULTIPLIER_BASE = 1.00075; // Slower growth rate for more predictable path
+export const MULTIPLIER_BASE = 1.001; // Increased from 1.00075 for faster growth
 export const MULTIPLIER_FACTOR = 120; // Higher factor for more dramatic curve
 
 // Colors for game elements

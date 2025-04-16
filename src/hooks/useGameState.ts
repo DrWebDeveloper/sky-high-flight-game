@@ -17,7 +17,13 @@ export interface GameState {
 const generateCrashPoint = () => {
   const houseEdge = 0.05;
   const r = Math.random();
-  return r < houseEdge ? 1.0 : Math.max(1.0, Math.floor(99 / (r * 98) * 100) / 100);
+  
+  if (r < houseEdge) {
+    return 1.0;
+  } else {
+    const exponentialValue = -Math.log(1 - 0.98 * r) / 0.3;
+    return Math.max(1.0, Math.floor((1.0 + exponentialValue) * 100) / 100);
+  }
 };
 
 export const useGameState = () => {
