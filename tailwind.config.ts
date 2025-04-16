@@ -1,3 +1,4 @@
+
 import type { Config } from "tailwindcss";
 
 export default {
@@ -61,7 +62,17 @@ export default {
 					'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
 					border: 'hsl(var(--sidebar-border))',
 					ring: 'hsl(var(--sidebar-ring))'
-				}
+				},
+				// Game specific colors
+				game: {
+					bg: '#1A1F2C',
+					primary: '#3498db',
+					danger: '#e74c3c',
+					success: '#2ecc71',
+					warning: '#f39c12',
+					text: '#ecf0f1',
+					multiplier: '#e74c3c'
+				},
 			},
 			borderRadius: {
 				lg: 'var(--radius)',
@@ -70,25 +81,37 @@ export default {
 			},
 			keyframes: {
 				'accordion-down': {
-					from: {
-						height: '0'
-					},
-					to: {
-						height: 'var(--radix-accordion-content-height)'
-					}
+					from: { height: '0' },
+					to: { height: 'var(--radix-accordion-content-height)' }
 				},
 				'accordion-up': {
-					from: {
-						height: 'var(--radix-accordion-content-height)'
-					},
-					to: {
-						height: '0'
-					}
+					from: { height: 'var(--radix-accordion-content-height)' },
+					to: { height: '0' }
+				},
+				'plane-fly': {
+					'0%': { transform: 'translate(0, 0) rotate(0deg)' },
+					'100%': { transform: 'translate(100%, -100%) rotate(45deg)' }
+				},
+				pulse: {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0.5' }
+				},
+				blink: {
+					'0%, 100%': { opacity: '1' },
+					'50%': { opacity: '0' }
+				},
+				'number-increase': {
+					'0%': { transform: 'translateY(100%)', opacity: '0' },
+					'100%': { transform: 'translateY(0)', opacity: '1' }
 				}
 			},
 			animation: {
 				'accordion-down': 'accordion-down 0.2s ease-out',
-				'accordion-up': 'accordion-up 0.2s ease-out'
+				'accordion-up': 'accordion-up 0.2s ease-out',
+				'plane-fly': 'plane-fly 15s cubic-bezier(0.33, 1, 0.68, 1) forwards',
+				'pulse': 'pulse 2s infinite',
+				'blink': 'blink 1s infinite',
+				'number-increase': 'number-increase 0.3s ease-out'
 			}
 		}
 	},
