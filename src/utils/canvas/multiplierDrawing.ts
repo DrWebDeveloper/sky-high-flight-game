@@ -12,7 +12,8 @@ export const drawMultiplier = (
   const crashed = !isGameActive && multiplier >= crashPoint;
   
   if (isGameActive) {
-    const hue = Math.min(120 - (multiplier - 1) * 20, 120);
+    // Adjust color gradient to handle higher multipliers
+    const hue = Math.max(0, Math.min(120, 120 - (multiplier - 1) * 10));
     ctx.fillStyle = `hsl(${hue}, 80%, 60%)`;
   } else {
     ctx.fillStyle = crashed ? '#FF5252' : '#FFFFFF';

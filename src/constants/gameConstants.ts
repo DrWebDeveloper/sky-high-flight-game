@@ -10,10 +10,10 @@ export const GAME_CANVAS = {
   }
 };
 
-// Adjusted for more dramatic growth
-export const MULTIPLIER_UPDATE_INTERVAL = 100; // ms - Faster update for smoother animation
-export const MULTIPLIER_BASE = 1.001; // Increased from 1.00075 for faster growth
-export const MULTIPLIER_FACTOR = 120; // Higher factor for more dramatic curve
+// Completely revised multiplier system
+export const MULTIPLIER_UPDATE_INTERVAL = 50; // ms - Even faster updates
+export const MULTIPLIER_BASE = 1.0015; // Higher base value
+export const MULTIPLIER_GROWTH_SPEED = 0.25; // Controls how quickly the multiplier increases
 
 // Colors for game elements
 export const GAME_COLORS = {

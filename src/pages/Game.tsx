@@ -7,7 +7,7 @@ import GameControls from '@/components/GameControls';
 import GameStats from '@/components/GameStats';
 import { useGameState } from '@/hooks/useGameState';
 import { useGameHistory } from '@/hooks/useGameHistory';
-import { MULTIPLIER_BASE, MULTIPLIER_UPDATE_INTERVAL } from '@/constants/gameConstants';
+import { MULTIPLIER_UPDATE_INTERVAL, MULTIPLIER_GROWTH_SPEED } from '@/constants/gameConstants';
 import { checkForAutoCashouts } from '@/utils/gameUtils';
 
 const Game = () => {
@@ -46,13 +46,13 @@ const Game = () => {
       multiplierIntervalRef.current = setInterval(() => {
         const elapsedSeconds = (Date.now() - startTime) / 1000;
         
-        // Enhanced multiplier calculation for more dramatic growth
-        // We're using a more aggressive growth formula with higher exponent
-        const growthFactor = 3.0; // Increased from 1.5 for faster growth
-        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * growthFactor * 100) + elapsedSeconds * 0.1).toFixed(2));
+        // Completely new multiplier calculation using direct exponential growth
+        // This formula ensures steady growth from 1.00 and up
+        const newMultiplier = 1 + Math.pow(elapsedSeconds, 1.5) * MULTIPLIER_GROWTH_SPEED;
+        const roundedMultiplier = parseFloat(newMultiplier.toFixed(2));
         
         setGameState(prev => {
-          if (newMultiplier >= prev.crashPoint) {
+          if (roundedMultiplier >= prev.crashPoint) {
             if (multiplierIntervalRef.current) {
               clearInterval(multiplierIntervalRef.current);
               multiplierIntervalRef.current = null;
@@ -64,11 +64,11 @@ const Game = () => {
           
           return {
             ...prev,
-            multiplier: newMultiplier
+            multiplier: roundedMultiplier
           };
         });
         
-        checkForAutoCashouts(newMultiplier, gameState, handleCashout);
+        checkForAutoCashouts(roundedMultiplier, gameState, handleCashout);
         
       }, MULTIPLIER_UPDATE_INTERVAL);
       
