@@ -1,6 +1,6 @@
 
 import React, { useEffect, useState, useRef } from 'react';
-import { Airplane } from 'lucide-react';
+import { PlaneTakeoff } from 'lucide-react';
 
 interface GameCanvasProps {
   isGameActive: boolean;
@@ -91,7 +91,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           transform: crashed ? 'rotate(90deg)' : 'rotate(45deg)'
         }}
       >
-        <Airplane size={32} className="drop-shadow-lg" />
+        <PlaneTakeoff size={32} className="drop-shadow-lg" />
       </div>
       
       {!isGameActive && (

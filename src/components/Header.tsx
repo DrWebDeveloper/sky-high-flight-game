@@ -1,12 +1,12 @@
 
 import React from 'react';
-import { Airplane } from 'lucide-react';
+import { PlaneTakeoff } from 'lucide-react';
 
 const Header: React.FC = () => {
   return (
     <header className="flex items-center justify-between p-4 glass-panel mb-4">
       <div className="flex items-center space-x-2">
-        <Airplane className="text-game-primary h-6 w-6" />
+        <PlaneTakeoff className="text-game-primary h-6 w-6" />
         <h1 className="text-xl font-bold">Sky High</h1>
       </div>
       <div className="flex items-center space-x-4">
