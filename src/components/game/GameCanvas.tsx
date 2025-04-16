@@ -4,7 +4,7 @@ import { useGameAnimation } from '@/hooks/useGameAnimation';
 import { useGameCountdown } from '@/hooks/useGameCountdown';
 import CountdownDisplay from './CountdownDisplay';
 import aviatorSvg from '/images/aviator.svg';
-import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes, drawTrajectory } from '@/utils/canvas';
+import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes } from '@/utils/canvas';
 
 interface GameCanvasProps {
   isGameActive: boolean;
@@ -25,7 +25,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     startAnimationTime,
     backgroundPlanesRef,
     initBackgroundPlanes,
-    calculateTrajectoryPoints,
     isFlyingAway,
     setIsFlyingAway,
     draw
