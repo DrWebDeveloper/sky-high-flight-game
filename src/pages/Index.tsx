@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Header from '@/components/Header';
-import GameCanvas from '@/components/GameCanvas';
+import GameCanvas from '@/components/game/GameCanvas';
 import BettingPanel from '@/components/BettingPanel';
 import GameControls from '@/components/GameControls';
 import GameStats from '@/components/GameStats';
