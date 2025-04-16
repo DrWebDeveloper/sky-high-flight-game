@@ -24,5 +24,16 @@ export const GAME_COLORS = {
   PATH_STROKE_END: '#FF9800',
   MULTIPLIER_BASE: '#4CAF50',
   MULTIPLIER_HIGH: '#FF5722',
-  CRASHED: '#FF5252'
+  CRASHED: '#FF5252',
+  PATH_SHADOW: 'rgba(255, 193, 7, 0.6)', // Added for path glow
+  TRAJECTORY_LINE: '#FF9800' // Added for trajectory visualization
+};
+
+// Added trajectory visualization settings
+export const TRAJECTORY = {
+  SHOW_PREDICTION: true,
+  PREDICTION_POINTS: 50,
+  PREDICTION_OPACITY: 0.3,
+  DOT_SIZE: 3,
+  DOT_SPACING: 15
 };

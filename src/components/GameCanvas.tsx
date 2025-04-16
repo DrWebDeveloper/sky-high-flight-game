@@ -1,7 +1,14 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameAnimation } from '@/hooks/useGameAnimation';
-import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes } from '@/utils/canvasDrawing';
+import { 
+  drawGrid, 
+  drawPath, 
+  drawPlane, 
+  drawMultiplier, 
+  drawBackgroundPlanes,
+  drawTrajectory 
+} from '@/utils/canvasDrawing';
 import { GAME_CANVAS, MULTIPLIER_UPDATE_INTERVAL, MULTIPLIER_BASE, MULTIPLIER_FACTOR } from '@/constants/gameConstants';
 import aviatorSvg from '/images/aviator.svg';
 
@@ -25,7 +32,8 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     flyAwayStartTime,
     startAnimationTime,
     backgroundPlanesRef,
-    initBackgroundPlanes
+    initBackgroundPlanes,
+    calculateTrajectoryPoints
   } = useGameAnimation({ isGameActive, multiplier, crashPoint });
 
   // Load plane image
@@ -171,6 +179,23 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
 
     // Draw game elements
     drawPath(ctx, pathPointsRef.current, height, bottomMargin);
+    
+    // Draw trajectory prediction if game is active
+    if (isGameActive && startAnimationTime.current === null) {
+      drawTrajectory(
+        ctx, 
+        nextX, 
+        nextY, 
+        multiplier, 
+        crashPoint, 
+        width, 
+        height, 
+        topMargin, 
+        bottomMargin, 
+        leftMargin, 
+        rightMargin
+      );
+    }
     
     if (!isFlyingAway || (nextX <= width + 50 && nextX >= -50 && nextY >= -50 && nextY <= height + 50)) {
       drawPlane(ctx, planeImage, nextX, nextY, angle, isGameActive, startAnimationTime.current, multiplier);
