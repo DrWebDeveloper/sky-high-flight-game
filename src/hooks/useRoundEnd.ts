@@ -71,6 +71,7 @@ export const useRoundEnd = ({
     const newTotalPlayers = gameState.activeBet !== null ? 1 : 0;
     const newTotalBets = gameState.activeBet || 0;
     
+    // Fixed by passing the new values directly
     setTotalPlayers(prev => prev + newTotalPlayers);
     setTotalBets(prev => prev + newTotalBets);
 

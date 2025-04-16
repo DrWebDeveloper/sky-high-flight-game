@@ -22,5 +22,15 @@ export const GAME_COLORS = {
   MULTIPLIER_BASE: '#4CAF50',
   MULTIPLIER_HIGH: '#FF5722',
   CRASHED: '#FF5252',
-  PATH_SHADOW: 'rgba(255, 193, 7, 0.6)'
+  PATH_SHADOW: 'rgba(255, 193, 7, 0.6)',
+  TRAJECTORY_LINE: '#FF9800' // Added for trajectory visualization
+};
+
+// Minimal trajectory settings
+export const TRAJECTORY = {
+  SHOW_PREDICTION: true,
+  PREDICTION_POINTS: 20,
+  PREDICTION_OPACITY: 0.5,
+  DOT_SIZE: 3,
+  DOT_SPACING: 8
 };
