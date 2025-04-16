@@ -1,5 +1,6 @@
 
 import { useRef, useCallback } from 'react';
+import { GAME_CANVAS } from '@/constants/gameConstants';
 
 interface GameAnimationProps {
   isGameActive: boolean;
@@ -23,6 +24,21 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
   const verticalOffsetRef = useRef(0);
   const flyAwayStartTime = useRef<number | null>(null);
   const startAnimationTime = useRef<number | null>(null);
+  
+  // Add references for background planes
+  const backgroundPlanesRef = useRef<PlanePosition[]>([]);
+  
+  // Initialize background planes
+  const initBackgroundPlanes = useCallback(() => {
+    const { DEFAULT_WIDTH, DEFAULT_HEIGHT } = GAME_CANVAS;
+    
+    // Create random background planes
+    backgroundPlanesRef.current = Array.from({ length: 5 }, () => ({
+      x: Math.random() * DEFAULT_WIDTH,
+      y: Math.random() * DEFAULT_HEIGHT,
+      angle: Math.random() * Math.PI * 2,
+    }));
+  }, []);
 
   return {
     canvasRef,
@@ -33,6 +49,8 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     pathPointsRef,
     verticalOffsetRef,
     flyAwayStartTime,
-    startAnimationTime
+    startAnimationTime,
+    backgroundPlanesRef,
+    initBackgroundPlanes
   };
 };

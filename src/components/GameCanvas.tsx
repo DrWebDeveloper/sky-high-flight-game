@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useGameAnimation } from '@/hooks/useGameAnimation';
-import { drawGrid, drawPath, drawPlane, drawMultiplier } from '@/utils/canvasDrawing';
+import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes } from '@/utils/canvasDrawing';
 import { GAME_CANVAS, MULTIPLIER_UPDATE_INTERVAL, MULTIPLIER_BASE, MULTIPLIER_FACTOR } from '@/constants/gameConstants';
 import aviatorSvg from '/images/aviator.svg';
 
@@ -23,7 +23,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     pathPointsRef,
     verticalOffsetRef,
     flyAwayStartTime,
-    startAnimationTime
+    startAnimationTime,
+    backgroundPlanesRef,
+    initBackgroundPlanes
   } = useGameAnimation({ isGameActive, multiplier, crashPoint });
 
   // Load plane image
@@ -32,8 +34,10 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     img.src = aviatorSvg;
     img.onload = () => {
       planeImageRef.current = img;
+      // Initialize background planes once the image is loaded
+      initBackgroundPlanes();
     };
-  }, []);
+  }, [initBackgroundPlanes]);
 
   // Reset path and position when game becomes active
   useEffect(() => {
@@ -73,9 +77,22 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     const graphHeight = height - bottomMargin - topMargin;
     const graphWidth = width - leftMargin - rightMargin;
 
-    // Clear and draw background
+    // Clear and draw background with gradient
     ctx.clearRect(0, 0, width, height);
+    
+    // Add a subtle background gradient
+    const bgGradient = ctx.createLinearGradient(0, 0, 0, height);
+    bgGradient.addColorStop(0, 'rgba(20, 20, 40, 0.3)');
+    bgGradient.addColorStop(1, 'rgba(10, 10, 20, 0.3)');
+    ctx.fillStyle = bgGradient;
+    ctx.fillRect(0, 0, width, height);
+    
     drawGrid({ ctx, width, height, bottomMargin, topMargin, leftMargin, rightMargin });
+    
+    // Draw background planes for ambience
+    if (backgroundPlanesRef.current.length > 0) {
+      drawBackgroundPlanes(ctx, planeImage, backgroundPlanesRef.current, timestamp, width, height);
+    }
 
     let { x: nextX, y: nextY, angle } = currentPlanePos.current;
 
@@ -156,7 +173,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     drawPath(ctx, pathPointsRef.current, height, bottomMargin);
     
     if (!isFlyingAway || (nextX <= width + 50 && nextX >= -50 && nextY >= -50 && nextY <= height + 50)) {
-      drawPlane(ctx, planeImage, nextX, nextY, angle, isGameActive, startAnimationTime.current);
+      drawPlane(ctx, planeImage, nextX, nextY, angle, isGameActive, startAnimationTime.current, multiplier);
     }
     
     drawMultiplier(ctx, multiplier, crashPoint, isGameActive, startAnimationTime.current, timestamp, width, height);
