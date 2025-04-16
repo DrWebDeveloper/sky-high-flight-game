@@ -68,12 +68,14 @@ export const useRoundEnd = ({
       activeBetAutoCashout: null
     }));
 
+    // Calculate new values
     const newTotalPlayers = gameState.activeBet !== null ? 1 : 0;
     const newTotalBets = gameState.activeBet || 0;
     
-    // Fixed by passing the new values directly
-    setTotalPlayers(prev => prev + newTotalPlayers);
-    setTotalBets(prev => prev + newTotalBets);
+    // Fix: Pass direct values instead of callback functions
+    // We need to get the current values separately and then update with new totals
+    setTotalPlayers(newTotalPlayers);
+    setTotalBets(newTotalBets);
 
     if (finalMultiplier > (gameHistory[0]?.multiplier || 0)) {
       setHighestMultiplier(finalMultiplier);
