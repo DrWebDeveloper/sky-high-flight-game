@@ -1,5 +1,8 @@
 import { useRef, useCallback, useState } from 'react';
-import { GAME_CANVAS } from '@/constants/gameConstants';
+import { usePlanePosition } from './animation/usePlanePosition';
+import { useAnimationTiming } from './animation/useAnimationTiming';
+import { useBackgroundPlanes } from './animation/useBackgroundPlanes';
+import { useTrajectory } from './animation/useTrajectory';
 import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes, drawTrajectory } from '@/utils/canvas';
 
 interface GameAnimationProps {
@@ -8,67 +11,15 @@ interface GameAnimationProps {
   crashPoint: number;
 }
 
-interface PlanePosition {
-  x: number;
-  y: number;
-  angle: number;
-}
-
 export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameAnimationProps) => {
   const [isFlyingAway, setIsFlyingAway] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const planeImageRef = useRef<HTMLImageElement | null>(null);
-  const animationFrameId = useRef<number | null>(null);
-  const lastTimestamp = useRef<number>(0);
-  const currentPlanePos = useRef<PlanePosition>({ x: 50, y: 400, angle: 0 });
-  const pathPointsRef = useRef<{ x: number; y: number }[]>([{ x: 50, y: 400 }]);
-  const verticalOffsetRef = useRef(0);
-  const flyAwayStartTime = useRef<number | null>(null);
-  const startAnimationTime = useRef<number | null>(null);
   
-  const backgroundPlanesRef = useRef<PlanePosition[]>([]);
-  
-  const initBackgroundPlanes = useCallback(() => {
-    const { DEFAULT_WIDTH, DEFAULT_HEIGHT } = GAME_CANVAS;
-    
-    backgroundPlanesRef.current = Array.from({ length: 5 }, () => ({
-      x: Math.random() * DEFAULT_WIDTH,
-      y: Math.random() * DEFAULT_HEIGHT,
-      angle: Math.random() * Math.PI * 2,
-    }));
-  }, []);
-
-  const calculateTrajectoryPoints = useCallback((currentMultiplier: number) => {
-    if (!isGameActive || currentMultiplier < 1) return [];
-    
-    const { DEFAULT_WIDTH, DEFAULT_HEIGHT, MARGINS } = GAME_CANVAS;
-    const topMargin = MARGINS.TOP;
-    const bottomMargin = MARGINS.BOTTOM;
-    const leftMargin = MARGINS.LEFT;
-    const rightMargin = MARGINS.RIGHT;
-    
-    const graphHeight = DEFAULT_HEIGHT - bottomMargin - topMargin;
-    const graphWidth = DEFAULT_WIDTH - leftMargin - rightMargin;
-    
-    const currentProgress = (currentMultiplier - 1) / Math.max(0.1, crashPoint - 1);
-    const points = [];
-    
-    for (let i = 0; i < 10; i++) {
-      const futureProgress = currentProgress + (i / 20) * (1 - currentProgress);
-      if (futureProgress >= 1) break;
-      
-      const normalizedProgress = Math.min(1, Math.max(0, futureProgress));
-      const curveSteepness = 0.5;
-      
-      const x = leftMargin + normalizedProgress * graphWidth;
-      const baseY = graphHeight - Math.pow(normalizedProgress, curveSteepness) * graphHeight;
-      const y = topMargin + baseY;
-      
-      points.push({ x, y });
-    }
-    
-    return points;
-  }, [isGameActive, crashPoint]);
+  const { currentPlanePos, pathPointsRef, verticalOffsetRef } = usePlanePosition();
+  const { animationFrameId, lastTimestamp, flyAwayStartTime, startAnimationTime } = useAnimationTiming();
+  const { backgroundPlanesRef, initBackgroundPlanes } = useBackgroundPlanes();
+  const { calculateTrajectoryPoints } = useTrajectory(isGameActive, crashPoint);
 
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
