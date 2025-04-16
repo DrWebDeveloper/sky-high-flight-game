@@ -1,10 +1,10 @@
-import React, { useRef, useEffect, useState, useCallback } from 'react'; // Import useCallback
+
+import React, { useRef, useEffect, useState, useCallback } from 'react';
 import aviatorSvg from '/images/aviator.svg';
 
 interface GameCanvasProps {
   isGameActive: boolean;
   multiplier: number;
-  // onGameEnd: () => void; // No longer needed directly if Index controls timing
   crashPoint: number;
 }
 
@@ -18,6 +18,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
   const verticalOffsetRef = useRef(0); // Store vertical offset for smoother random movement
   const [isFlyingAway, setIsFlyingAway] = useState(false); // State for fly away animation
   const flyAwayStartTime = useRef<number | null>(null); // Track start time for fly away
+  const startAnimationTime = useRef<number | null>(null); // Track time for intro animation
 
   // Load plane image
   useEffect(() => {
@@ -31,12 +32,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
   // Reset path and position when game becomes active (starts)
   useEffect(() => {
     if (isGameActive) {
-      pathPointsRef.current = [{ x: 50, y: 400 }]; // Reset path to start (bottom-left)
-      currentPlanePos.current = { x: 50, y: 400, angle: -Math.PI / 6 }; // Reset position and initial angle
+      // Reset to starting position (off-screen to the left)
+      pathPointsRef.current = []; // Clear previous path
+      currentPlanePos.current = { x: -50, y: 400, angle: 0 }; // Start off-screen
       verticalOffsetRef.current = 0; // Reset vertical offset
       lastTimestamp.current = performance.now(); // Reset timestamp for animation delta
       setIsFlyingAway(false); // Reset fly away state
       flyAwayStartTime.current = null; // Reset fly away start time
+      startAnimationTime.current = performance.now(); // Set start time for intro animation
     } else {
       // Check if crash occurred when becoming inactive
       if (multiplier >= crashPoint && !isFlyingAway) {
@@ -78,9 +81,21 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
     // Draw background grid (optional)
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
     ctx.lineWidth = 0.5;
-    for (let x = leftMargin; x <= width - rightMargin; x += 20) { /* ... */ }
-    for (let y = topMargin; y <= height - bottomMargin; y += 20) { /* ... */ }
-
+    
+    // Draw grid lines (horizontal and vertical)
+    for (let x = leftMargin; x <= width - rightMargin; x += 50) {
+      ctx.beginPath();
+      ctx.moveTo(x, topMargin);
+      ctx.lineTo(x, height - bottomMargin);
+      ctx.stroke();
+    }
+    
+    for (let y = topMargin; y <= height - bottomMargin; y += 50) {
+      ctx.beginPath();
+      ctx.moveTo(leftMargin, y);
+      ctx.lineTo(width - rightMargin, y);
+      ctx.stroke();
+    }
 
     let nextX = currentPlanePos.current.x;
     let nextY = currentPlanePos.current.y;
@@ -100,48 +115,66 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
 
       // Stop requesting frames if plane is way off screen
       if (nextX > width + 100 || nextX < -100 || nextY < -100 || nextY > height + 100) {
-    // Optionally stop animation completely after flying away
-    // if (animationFrameId.current) cancelAnimationFrame(animationFrameId.current);
-    // animationFrameId.current = null;
-    // Don't draw plane or update position if completely off-screen
+        // Don't draw plane or update position if completely off-screen
       }
-
     } else if (isGameActive) {
       // --- Active Game Movement ---
-
-      // Handle the very start of the game explicitly
-      if (multiplier <= 1.01 && pathPointsRef.current.length <= 1) {
-        // Keep plane at initial position and angle until multiplier increases slightly
-        nextX = leftMargin;
-        nextY = height - bottomMargin;
-        angle = -Math.PI / 6; // Maintain initial angle
-        // Ensure the first point is correct if it wasn't already
-        if (pathPointsRef.current.length === 0 || pathPointsRef.current[0].x !== nextX || pathPointsRef.current[0].y !== nextY) {
-          pathPointsRef.current = [{ x: nextX, y: nextY }];
+      
+      // Handle the intro animation (plane enters from left)
+      if (startAnimationTime.current !== null) {
+        const introAnimDuration = (timestamp - startAnimationTime.current) / 1000; // in seconds
+        const introAnimComplete = introAnimDuration > 1.5; // 1.5 seconds for intro
+        
+        if (!introAnimComplete) {
+          // Smooth entrance from off-screen
+          const entranceProgress = Math.min(1, introAnimDuration / 1.5);
+          // Easing function for smoother motion
+          const easedProgress = 1 - Math.pow(1 - entranceProgress, 3);
+          
+          nextX = -50 + (leftMargin + 50) * easedProgress;
+          nextY = height - bottomMargin - 20;
+          angle = -0.1; // Slight upward angle
+          
+          // Update path if moving significantly
+          if (pathPointsRef.current.length === 0 || 
+              Math.hypot(nextX - (pathPointsRef.current[pathPointsRef.current.length - 1]?.x || 0), 
+                         nextY - (pathPointsRef.current[pathPointsRef.current.length - 1]?.y || 0)) > 5) {
+            pathPointsRef.current.push({ x: nextX, y: nextY });
+          }
+          
+          // Update current position
+          currentPlanePos.current = { x: nextX, y: nextY, angle };
+        } else {
+          // Intro finished, clear it
+          startAnimationTime.current = null;
+          // Ensure path has at least one point
+          if (pathPointsRef.current.length === 0) {
+            pathPointsRef.current.push({ x: leftMargin, y: height - bottomMargin - 20 });
+          }
         }
-        // Update current position directly for the next frame's reference
-        currentPlanePos.current = { x: nextX, y: nextY, angle: angle };
-
       } else {
-        // Normal active movement logic (once multiplier > 1.01 or path has > 1 point)
+        // Normal active movement logic after intro
         const rawProgress = (multiplier - 1) / Math.max(0.1, crashPoint > 1 ? crashPoint - 1 : 0.1);
         const progress = Math.pow(rawProgress, 1.5);
         const normalizedProgress = Math.min(1, Math.max(0, progress));
 
+        // Generate vertical oscillation based on time to create natural flight path
+        if (Math.random() < 0.05) { // Occasionally update vertical offset
+          verticalOffsetRef.current = (Math.random() - 0.5) * 0.15; // Smaller random vertical offsets
+        }
+
         const curveSteepness = 0.5;
         const targetX = leftMargin + normalizedProgress * graphWidth;
         const baseY = graphHeight - Math.pow(normalizedProgress, curveSteepness) * graphHeight;
-
-        // ... existing random vertical movement ...
         const targetY = topMargin + baseY + verticalOffsetRef.current * graphHeight;
 
-        const lerpFactor = Math.min(1, 2.5 * deltaTime);
+        const lerpFactor = Math.min(1, 3.0 * deltaTime); // Faster lerping for smoother movement
         nextX = currentPlanePos.current.x + (targetX - currentPlanePos.current.x) * lerpFactor;
         nextY = currentPlanePos.current.y + (targetY - currentPlanePos.current.y) * lerpFactor;
 
-        // Update Path - Ensure we don't add the initial point again if no movement
+        // Update Path - Ensure we don't add points too frequently (causes jagged lines)
         const lastPoint = pathPointsRef.current[pathPointsRef.current.length - 1];
-        if (lastPoint && Math.hypot(nextX - lastPoint.x, nextY - lastPoint.y) > 2) { // Add point threshold
+        if (lastPoint && Math.hypot(nextX - lastPoint.x, nextY - lastPoint.y) > 3) { // Add point threshold
           pathPointsRef.current.push({ x: nextX, y: nextY });
         }
 
@@ -156,13 +189,14 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
             let angleDiff = targetAngle - angle;
             while (angleDiff < -Math.PI) angleDiff += 2 * Math.PI;
             while (angleDiff > Math.PI) angleDiff -= 2 * Math.PI;
-            angle += angleDiff * lerpFactor;
+            
+            // Smoother angle lerping
+            angle += angleDiff * Math.min(1, 4.0 * deltaTime);
           }
         }
         // Update current position for next frame
         currentPlanePos.current = { x: nextX, y: nextY, angle: angle };
       }
-
     } else {
       // --- Game Inactive (Before Fly Away or if not crashed) ---
       // Plane stays at the last position before fly away starts
@@ -179,64 +213,104 @@ const GameCanvas: React.FC<GameCanvasProps> = ({ isGameActive, multiplier, crash
       }
     }
 
-
     // --- Draw Filled Red Area (Always based on path) ---
     if (pathPointsRef.current.length > 1) {
       ctx.beginPath();
-      ctx.moveTo(leftMargin, height - bottomMargin);
+      const firstPoint = pathPointsRef.current[0];
+      ctx.moveTo(firstPoint.x, height - bottomMargin); // Start at bottom of first x point
+      
       pathPointsRef.current.forEach(p => {
         ctx.lineTo(p.x, p.y);
       });
+      
       // Use the last point in the path for the area boundary
       const finalPathX = pathPointsRef.current[pathPointsRef.current.length - 1].x;
       const finalPathY = pathPointsRef.current[pathPointsRef.current.length - 1].y;
       ctx.lineTo(finalPathX, finalPathY); // Line to the actual end of the path
       ctx.lineTo(finalPathX, height - bottomMargin); // Line down to bottom
       ctx.closePath();
-      ctx.fillStyle = 'rgba(255, 0, 0, 0.3)';
+      
+      // Gradient fill for more attractive look
+      const gradient = ctx.createLinearGradient(0, 0, 0, height);
+      gradient.addColorStop(0, 'rgba(255, 0, 0, 0.5)');
+      gradient.addColorStop(1, 'rgba(255, 0, 0, 0.1)');
+      ctx.fillStyle = gradient;
       ctx.fill();
     }
 
     // --- Draw Yellow Path Line (Always based on path) ---
-    ctx.beginPath();
-    ctx.moveTo(leftMargin, height - bottomMargin);
-    pathPointsRef.current.forEach(p => {
-      ctx.lineTo(p.x, p.y);
-    });
-    // Don't extend line to plane if flying away or inactive
-    if (isGameActive && !isFlyingAway) {
-      ctx.lineTo(nextX, nextY); // Only extend if game is active and not flying away
+    if (pathPointsRef.current.length > 0) {
+      ctx.beginPath();
+      const firstPoint = pathPointsRef.current[0];
+      ctx.moveTo(firstPoint.x, firstPoint.y);
+      
+      pathPointsRef.current.forEach((p, index) => {
+        if (index > 0) ctx.lineTo(p.x, p.y);
+      });
+      
+      // Don't extend line to plane if flying away or inactive
+      if (isGameActive && !isFlyingAway && startAnimationTime.current === null) {
+        ctx.lineTo(nextX, nextY); // Only extend if game is active and not flying away/in intro
+      }
+      
+      // Gradient stroke for better visibility
+      const gradient = ctx.createLinearGradient(0, 0, width, 0);
+      gradient.addColorStop(0, '#FFC700');  // Brighter yellow
+      gradient.addColorStop(1, '#FFD700');
+      ctx.strokeStyle = gradient;
+      ctx.lineWidth = 3;
+      ctx.stroke();
     }
-    ctx.strokeStyle = '#FFD700';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-
 
     // --- Draw Plane ---
     // Only draw if not completely off-screen during fly away
     if (!isFlyingAway || (nextX <= width + 50 && nextX >= -50 && nextY >= -50 && nextY <= height + 50)) {
-      const planeWidth = 40;
-      const planeHeight = 40 * (planeImage.height / planeImage.width);
+      const planeWidth = 50; // Slightly larger plane
+      const planeHeight = 50 * (planeImage.height / planeImage.width);
+      
+      // Add glow effect to plane when active
+      if (isGameActive && startAnimationTime.current === null) {
+        ctx.save();
+        ctx.shadowColor = '#FFD700';
+        ctx.shadowBlur = 15;
+        ctx.shadowOffsetX = 0;
+        ctx.shadowOffsetY = 0;
+      }
+      
       ctx.save();
       ctx.translate(nextX, nextY);
       ctx.rotate(angle);
       ctx.drawImage(planeImage, -planeWidth / 2, -planeHeight / 2, planeWidth, planeHeight);
       ctx.restore();
+      
+      if (isGameActive && startAnimationTime.current === null) {
+        ctx.restore(); // Restore after glow effect
+      }
     }
 
-
-    // Update current position for next frame
-    currentPlanePos.current = { x: nextX, y: nextY, angle: angle };
-
     // --- Draw Multiplier Text ---
-    // Green when active, Red when crashed (after fly away starts or game ends crashed), White otherwise (e.g., before start)
+    // Green when active, Red when crashed (after fly away starts or game ends crashed), White otherwise
     const crashed = !isGameActive && multiplier >= crashPoint;
-    ctx.fillStyle = isGameActive ? '#90EE90' : (crashed ? '#FF6B6B' : '#FFFFFF'); // Light Green if active, Red if crashed, White otherwise
+    ctx.fillStyle = isGameActive ? '#90EE90' : (crashed ? '#FF6B6B' : '#FFFFFF');
     ctx.font = 'bold 48px Arial';
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    const displayMultiplier = crashed ? crashPoint : multiplier;
-    ctx.fillText(`${displayMultiplier.toFixed(2)}x`, width / 2, height / 2);
+    
+    // Bigger initial display when game starts
+    if (isGameActive && startAnimationTime.current !== null) {
+      const introProgress = Math.min(1, (timestamp - startAnimationTime.current) / 1000);
+      const scaleFactor = 1 + (1 - introProgress) * 0.5; // Scale from 1.5 to 1.0
+      
+      ctx.save();
+      ctx.translate(width / 2, height / 2);
+      ctx.scale(scaleFactor, scaleFactor);
+      ctx.fillText(`${multiplier.toFixed(2)}x`, 0, 0);
+      ctx.restore();
+    } else {
+      // Normal multiplier display
+      const displayMultiplier = crashed ? crashPoint : multiplier;
+      ctx.fillText(`${displayMultiplier.toFixed(2)}x`, width / 2, height / 2);
+    }
 
     if (crashed && !isFlyingAway) { // Show CRASHED text only before fly away starts
       ctx.fillStyle = '#FF6B6B'; // Red
