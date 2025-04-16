@@ -34,43 +34,36 @@ const Game = () => {
 
   const multiplierIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Effect to handle multiplier updates when game is active
   useEffect(() => {
     if (gameState.isGameActive) {
-      // Clear any existing interval
       if (multiplierIntervalRef.current) {
         clearInterval(multiplierIntervalRef.current);
       }
 
       const startTime = Date.now();
       
-      // Set up interval to update multiplier
       multiplierIntervalRef.current = setInterval(() => {
         const elapsedSeconds = (Date.now() - startTime) / 1000;
-        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * 100)).toFixed(2));
+        const growthFactor = 1.5;
+        const newMultiplier = parseFloat((Math.pow(MULTIPLIER_BASE, elapsedSeconds * growthFactor * 100)).toFixed(2));
         
         setGameState(prev => {
-          // Check if we've reached or exceeded the crash point
           if (newMultiplier >= prev.crashPoint) {
-            // Clear the interval and end the game
             if (multiplierIntervalRef.current) {
               clearInterval(multiplierIntervalRef.current);
               multiplierIntervalRef.current = null;
             }
             
-            // Schedule ending the game in the next tick to avoid state update conflicts
             setTimeout(() => endGame(prev.crashPoint), 0);
             return prev;
           }
           
-          // Otherwise update the multiplier
           return {
             ...prev,
             multiplier: newMultiplier
           };
         });
         
-        // Check for auto-cashouts with the updated multiplier
         checkForAutoCashouts(newMultiplier, gameState, handleCashout);
         
       }, MULTIPLIER_UPDATE_INTERVAL);
@@ -82,7 +75,7 @@ const Game = () => {
         }
       };
     }
-  }, [gameState.isGameActive, gameState.crashPoint, handleCashout]);
+  }, [gameState.isGameActive, gameState.crashPoint, handleCashout, setGameState]);
 
   const startNewGame = useCallback(() => {
     const newCrashPoint = generateCrashPoint();
@@ -98,7 +91,6 @@ const Game = () => {
       isBetPending: false
     }));
 
-    // Update game stats...
     setTotalPlayers(prev => prev + (gameState.activeBet !== null ? 1 : 0));
     setTotalBets(prev => prev + (gameState.activeBet || 0));
 
@@ -124,7 +116,6 @@ const Game = () => {
 
     setGameHistory(prev => [newGame, ...prev].slice(0, 50));
 
-    // Update betting history...
     const updatedBets = [];
     if (gameState.activeBet !== null) {
       const playerBet = {
@@ -149,7 +140,6 @@ const Game = () => {
       activeBetAutoCashout: null
     }));
 
-    // Start countdown for next game
     let countdown = 5;
     setGameState(prev => ({ ...prev, nextGameCountdown: countdown }));
 
@@ -164,7 +154,6 @@ const Game = () => {
     }, 1000);
   }, [gameHistory, gameState, setBettingHistory, setGameHistory, setGameState, startNewGame]);
 
-  // Initialize game state
   useEffect(() => {
     setTotalBets(bettingHistory.reduce((sum, bet) => sum + bet.betAmount, 0));
     setTotalPlayers(new Set(bettingHistory.map(bet => bet.username)).size);

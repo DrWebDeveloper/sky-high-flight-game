@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import { toast } from '@/components/ui/sonner';
 
@@ -18,7 +17,7 @@ export interface GameState {
 const generateCrashPoint = () => {
   const houseEdge = 0.05;
   const r = Math.random();
-  return r < houseEdge ? 1.0 : Math.max(1.0, Math.floor(100 / (r * 99) * 100) / 100);
+  return r < houseEdge ? 1.0 : Math.max(1.0, Math.floor(99 / (r * 98) * 100) / 100);
 };
 
 export const useGameState = () => {
