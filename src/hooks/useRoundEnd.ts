@@ -68,10 +68,13 @@ export const useRoundEnd = ({
       activeBetAutoCashout: null
     }));
 
-    setTotalPlayers(prev => prev + (gameState.activeBet !== null ? 1 : 0));
-    setTotalBets(prev => prev + (gameState.activeBet || 0));
+    const newTotalPlayers = gameState.activeBet !== null ? 1 : 0;
+    const newTotalBets = gameState.activeBet || 0;
+    
+    setTotalPlayers(prev => prev + newTotalPlayers);
+    setTotalBets(prev => prev + newTotalBets);
 
-    if (finalMultiplier > gameHistory[0]?.multiplier || 0) {
+    if (finalMultiplier > (gameHistory[0]?.multiplier || 0)) {
       setHighestMultiplier(finalMultiplier);
     }
 

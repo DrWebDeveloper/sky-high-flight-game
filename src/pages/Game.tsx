@@ -29,6 +29,12 @@ const Game = () => {
     setHighestMultiplier
   } = useGameHistory();
 
+  const { startNewRound, startMultiplierInterval } = useGameRound({
+    gameState,
+    setGameState,
+    handleCashout
+  });
+
   const { handleRoundEnd } = useRoundEnd({
     gameState,
     setGameState,
@@ -40,12 +46,6 @@ const Game = () => {
     setHighestMultiplier,
     startNewRound,
     generateCrashPoint
-  });
-
-  const { startNewRound, startMultiplierInterval } = useGameRound({
-    gameState,
-    setGameState,
-    handleCashout
   });
 
   useEffect(() => {
