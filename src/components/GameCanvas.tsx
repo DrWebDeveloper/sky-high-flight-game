@@ -1,5 +1,5 @@
-
 import React, { useEffect, useState, useRef } from 'react';
+import AviatorPlane from './AviatorPlane';
 import { PlaneTakeoff } from 'lucide-react';
 
 interface GameCanvasProps {
@@ -20,7 +20,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
   const canvasRef = useRef<HTMLDivElement>(null);
   const animationRef = useRef<number | null>(null);
 
-  // Calculate plane position based on multiplier
   useEffect(() => {
     if (!isGameActive) {
       return;
@@ -35,10 +34,9 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
       return;
     }
 
-    // Update plane position based on multiplier
     const updatePosition = () => {
-      const newX = 5 + (multiplier - 1) * 5; // Move right as multiplier increases
-      const newY = 90 - (multiplier - 1) * 8; // Move up as multiplier increases
+      const newX = 5 + (multiplier - 1) * 5;
+      const newY = 90 - (multiplier - 1) * 8;
       setPlanePosition({ x: Math.min(newX, 90), y: Math.max(newY, 5) });
       
       animationRef.current = requestAnimationFrame(updatePosition);
@@ -53,7 +51,6 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
     };
   }, [isGameActive, multiplier, crashPoint, onGameEnd]);
 
-  // Reset plane position when game restarts
   useEffect(() => {
     if (!isGameActive) {
       setCrashed(false);
@@ -75,6 +72,16 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         <div className="h-full w-1/4 border-r border-dashed border-white/30 absolute top-0"></div>
         <div className="h-full w-1/2 border-r border-dashed border-white/30 absolute top-0"></div>
         <div className="h-full w-3/4 border-r border-dashed border-white/30 absolute top-0"></div>
+        
+        <div className="absolute top-1/4 left-1/4 opacity-10">
+          <AviatorPlane size={48} className="text-game-primary transform rotate-45" />
+        </div>
+        <div className="absolute top-1/2 right-1/3 opacity-10">
+          <AviatorPlane size={36} className="text-game-primary transform -rotate-12" />
+        </div>
+        <div className="absolute bottom-1/4 right-1/4 opacity-10">
+          <AviatorPlane size={42} className="text-game-primary transform rotate-90" />
+        </div>
       </div>
       
       {isGameActive && !crashed && (
@@ -91,7 +98,7 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
           transform: crashed ? 'rotate(90deg)' : 'rotate(45deg)'
         }}
       >
-        <PlaneTakeoff size={32} className="drop-shadow-lg" />
+        <AviatorPlane size={32} className="drop-shadow-lg" />
       </div>
       
       {!isGameActive && (
