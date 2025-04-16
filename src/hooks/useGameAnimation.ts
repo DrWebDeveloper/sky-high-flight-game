@@ -1,10 +1,8 @@
-
 import { useRef, useCallback, useState } from 'react';
 import { usePlanePosition } from './animation/usePlanePosition';
 import { useAnimationTiming } from './animation/useAnimationTiming';
 import { useBackgroundPlanes } from './animation/useBackgroundPlanes';
-import { useTrajectory } from './animation/useTrajectory';
-import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes, drawTrajectory } from '@/utils/canvas';
+import { drawGrid, drawPath, drawPlane, drawMultiplier, drawBackgroundPlanes } from '@/utils/canvas';
 import { GAME_CANVAS } from '@/constants/gameConstants';
 
 interface GameAnimationProps {
@@ -21,7 +19,6 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
   const { currentPlanePos, pathPointsRef, verticalOffsetRef } = usePlanePosition();
   const { animationFrameId, lastTimestamp, flyAwayStartTime, startAnimationTime } = useAnimationTiming();
   const { backgroundPlanesRef, initBackgroundPlanes } = useBackgroundPlanes();
-  const { calculateTrajectoryPoints } = useTrajectory(isGameActive, crashPoint);
 
   const draw = useCallback((timestamp: number) => {
     const canvas = canvasRef.current;
@@ -144,22 +141,6 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
 
     drawPath(ctx, pathPointsRef.current, height, bottomMargin);
     
-    if (isGameActive && startAnimationTime.current === null) {
-      drawTrajectory(
-        ctx, 
-        nextX, 
-        nextY, 
-        multiplier, 
-        crashPoint, 
-        width, 
-        height, 
-        topMargin, 
-        bottomMargin, 
-        leftMargin, 
-        rightMargin
-      );
-    }
-    
     if (!isFlyingAway || (nextX <= width + 50 && nextX >= -50 && nextY >= -50 && nextY <= height + 50)) {
       drawPlane(ctx, planeImage, nextX, nextY, angle, isGameActive, startAnimationTime.current, multiplier);
     }
@@ -183,7 +164,6 @@ export const useGameAnimation = ({ isGameActive, multiplier, crashPoint }: GameA
     startAnimationTime,
     backgroundPlanesRef,
     initBackgroundPlanes,
-    calculateTrajectoryPoints,
     isFlyingAway,
     setIsFlyingAway,
     draw

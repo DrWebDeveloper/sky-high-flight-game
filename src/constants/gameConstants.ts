@@ -11,7 +11,7 @@ export const GAME_CANVAS = {
 };
 
 export const MULTIPLIER_UPDATE_INTERVAL = 50;
-export const MULTIPLIER_GROWTH_SPEED = 0.35; // Increased for faster growth
+export const MULTIPLIER_GROWTH_SPEED = 0.35;
 
 export const GAME_COLORS = {
   GRID: 'rgba(255, 255, 255, 0.1)',
@@ -22,15 +22,6 @@ export const GAME_COLORS = {
   MULTIPLIER_BASE: '#4CAF50',
   MULTIPLIER_HIGH: '#FF5722',
   CRASHED: '#FF5252',
-  PATH_SHADOW: 'rgba(255, 193, 7, 0.6)',
-  TRAJECTORY_LINE: '#FF9800' // Added for trajectory visualization
+  PATH_SHADOW: 'rgba(255, 193, 7, 0.6)'
 };
 
-// Minimal trajectory settings
-export const TRAJECTORY = {
-  SHOW_PREDICTION: true,
-  PREDICTION_POINTS: 20,
-  PREDICTION_OPACITY: 0.5,
-  DOT_SIZE: 3,
-  DOT_SPACING: 8
-};
