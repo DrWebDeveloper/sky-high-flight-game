@@ -2,22 +2,30 @@
 import { DrawConfig } from './types';
 
 export const drawGrid = ({ ctx, width, height, bottomMargin, topMargin, leftMargin, rightMargin }: DrawConfig) => {
-  ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
-  ctx.lineWidth = 0.5;
+  // Use device pixel ratio for crisp lines
+  const pixelRatio = window.devicePixelRatio || 1;
+  const gridColor = 'rgba(255, 255, 255, 0.1)';
   
-  // Draw vertical lines
+  ctx.strokeStyle = gridColor;
+  ctx.lineWidth = 0.5 * pixelRatio;
+  
+  // Draw vertical lines with pixel-perfect positioning
   for (let x = leftMargin; x <= width - rightMargin; x += 50) {
+    const alignedX = Math.floor(x * pixelRatio) / pixelRatio;
+    
     ctx.beginPath();
-    ctx.moveTo(x, topMargin);
-    ctx.lineTo(x, height - bottomMargin);
+    ctx.moveTo(alignedX, topMargin);
+    ctx.lineTo(alignedX, height - bottomMargin);
     ctx.stroke();
   }
   
-  // Draw horizontal lines
+  // Draw horizontal lines with pixel-perfect positioning
   for (let y = topMargin; y <= height - bottomMargin; y += 50) {
+    const alignedY = Math.floor(y * pixelRatio) / pixelRatio;
+    
     ctx.beginPath();
-    ctx.moveTo(leftMargin, y);
-    ctx.lineTo(width - rightMargin, y);
+    ctx.moveTo(leftMargin, alignedY);
+    ctx.lineTo(width - rightMargin, alignedY);
     ctx.stroke();
   }
 };
